@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Meta, title, CSS, favicons, etc. -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="bakahui Home">
+    <meta name="keywords" content="bakahui,Homepage">
+    <meta name="author" content="bakahui">
+    <title>bakaHui Home</title>
+    <link rel="stylesheet" type="text/css" href="/static/css/onlinewebfonts.css"/>
+    <link rel="stylesheet" type="text/css" href="/static/css/vno.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/iconfont.css">
+    <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+    <link rel="icon" href="/static/favicon.ico">
+    <!-- 引入 xlsx.js 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+
+</head>
+
+<body>
+    <span class="mobile btn-mobile-menu">
+        <i class="social iconfont icon-list btn-mobile-menu__icon"></i>
+        <i class="social iconfont icon-angleup btn-mobile-close__icon hidden"></i>
+    </span>
+    <header id="panel" class="panel-cover">
+        <div class="panel-main">
+            <div class="panel-main__inner panel-inverted">
+                <div class="panel-main__content">
+                    <div> 
+                        <nav class="cover-navigation cover-navigation--primary">
+                            <ul class="navigation">
+                                <h1 class="hh2"><b>抽奖项目：<span id="lottery-name"></span></b></h1>
+                                <form id="submitForm">
+                                    <label for="textInput" >报上名来:</label>
+                                    <input type="text" id="nickname" name="textInput" class="button_2" required>
+                                    <button onclick="joinLottery()" type="submit" class="button_2" style="cursor: pointer">提交</button>
+                                    <h2 class="hh2">当前参与人数: <span id="maxNum" class="mmaxnum">加载中...</span></h2>
+                                    <div id="result"></div>  <!-- 用于显示抽奖结果 -->
+                                    <li class="navigation__item">
+                                        <!-- 按钮，点击后生成 Excel 表格并下载 -->
+                                        <button id="downloadButton" class="button_1">下载 Excel 表格</button>
+                                    </li>
+                                    <!-- 分享按钮 -->
+                                    <button id="shareButton" class="button_1">分享此链接</button>
+
+                                    <!-- 手动复制链接和二维码的浮窗 -->
+                                    <div id="qrCodeModal" class="modal">
+                                        <div class="modal-content">
+                                            <span class="close-btn" id="closeBtn">&times;</span>
+                                            <h2>复制此链接或扫描二维码</h2>
+                                            <!-- 手动复制链接的输入框 -->
+                                            <input type="text" id="shareUrl" readonly>
+                                            <button class="btn" onclick="copyLink()">复制链接</button>
+
+                                            <!-- 显示二维码的容器 -->
+                                            <div id="qrCodeContainer">
+                                            <!-- 二维码将会显示在这里 -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </ul>
+                        </nav>
+                    </div>
+                    <div class="navigation-wrapper iUp">
+                        
+                        
+                        <div id="responseMessage"></div>
+                        <br><br>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-cover--overlay cover-slate"></div>
+        </div>
+        <div class="remark iUp">
+            <p class="power1">
+                <a href="https://icp.gov.moe/?keyword=20246201" target="_blank">萌ICP备20246201号</a>
+            </p>
+        </div>
+    </header>
+    <script type="text/javascript" src="/static/js/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/js/main.js"></script>
+    <script type="text/javascript" src="/static/js/json/images.json"></script>
+</body>
+</html>
+
+<!-- Google Analytics (请自行删除) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-M5D97BF8KY"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-M5D97BF8KY');
+</script>
+
+<script>
+    // 定义 joinLottery 函数
+    function joinLottery() {
+        event.preventDefault(); // 阻止表单默认提交
+        const nickname = document.getElementById('nickname').value;
+        const lotteryId = new URLSearchParams(window.location.search).get('id');
+
+        if (!nickname) {
+            alert("请输入昵称！");
+            return;
+         }
+
+    // 发送参与抽奖请求
+    $.ajax({
+        url: `http://127.0.0.1:5000/join-lottery/${lotteryId}`,  // 请求加入抽奖的 API
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ nickname: nickname }),
+        success: function(response) {
+            // 显示抽奖结果
+            alert(response.message);  // 展示抽中的奖品
+             // 跳转到抽奖结果页面，传递正确的 lotteryId
+             window.location.href = `http://127.0.0.1:5000/lottery.html?id=${lotteryId}&nickname=${nickname}`;
+        },
+        error: function(xhr, status, error) {
+            // 错误处理
+            alert(xhr.responseJSON.error || "参与抽奖失败，请重试！");
+        }
+    });
+}
+
+        // 页面加载时获取抽奖项目信息并展示
+        $(document).ready(function() {
+            const lotteryId = new URLSearchParams(window.location.search).get('id');
+            if (lotteryId) {
+                $.ajax({
+                    url: `http://127.0.0.1:5000/get-lottery/${lotteryId}`,
+                    method: "GET",
+                    success: function(response) {
+                        const { prizeName, participants,numParticipants} = response;
+                        document.getElementById('lottery-name').textContent = prizeName;
+
+                        // 更新当前参与人数和总人数
+                        const participantCount = participants.length;
+                        const numCount = numParticipants;
+                        document.getElementById('maxNum').textContent = `${participantCount}/${numCount}`;  // 显示当前人数/总人数
+                    },
+                    error: function(xhr, status, error) {
+                        alert("加载抽奖信息失败！");
+                    }
+                });
+            }
+        });
+
+
+// 获取抽奖结果并下载为 Excel
+document.getElementById('downloadButton').addEventListener('click', function () {
+    event.preventDefault(); // 防止表单提交或页面跳转
+    const lotteryId = new URLSearchParams(window.location.search).get('id');
+    
+    if (!lotteryId) {
+        alert("抽奖ID无效！");
+        return;
+    }
+
+    // 发送请求获取当前抽奖的详细信息
+    $.ajax({
+        url: `http://127.0.0.1:5000/get-lottery/${lotteryId}`,
+        method: "GET",
+        success: function (response) {
+            // 解析返回的数据
+            const lottery = response;
+
+            // 构建表格数据
+            const participants = lottery.participants;
+            const prizes = lottery.prizes;
+
+            // 创建表格数据
+            const tableData = [];
+
+            // 设置表头
+            tableData.push(['序号', '昵称', '奖品']);
+
+            // 填充参与者数据
+            participants.forEach((participant, index) => {
+                const prize = participant.prize;
+                // 你可以选择将奖品数量保持为常量或直接读取奖品数量
+                // const prizeCount = prizeDetails ? prizeDetails.count : 0;
+                tableData.push([index + 1, participant.nickname, prize]);
+            });
+
+            // 使用 SheetJS 创建 Excel 文件
+            const ws = XLSX.utils.aoa_to_sheet(tableData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "抽奖结果");
+
+            // 下载 Excel 文件
+            XLSX.writeFile(wb, `lottery_result_${lotteryId}.xlsx`);
+        },
+        error: function (xhr, status, error) {
+            alert("获取抽奖数据失败！");
+        }
+    });
+});
+
+
+
+// 点击“分享此链接”按钮后触发
+document.getElementById('shareButton').addEventListener('click', function() {
+    const lotteryId = new URLSearchParams(window.location.search).get('id');
+    const currentUrl = `${window.location.origin}/lottery.html?id=${lotteryId}`;
+
+    // 检查浏览器是否支持 Clipboard API
+    if (navigator.clipboard) {
+        // 使用 Clipboard API 复制链接
+        navigator.clipboard.writeText(currentUrl).then(function() {
+            alert("链接已复制到剪贴板！");
+        }).catch(function(error) {
+            alert("复制链接失败：" + error);
+        });
+    } else {
+        // 如果 Clipboard API 不可用，显示手动复制框和二维码
+        document.getElementById('shareUrl').value = currentUrl; // 设置文本框的值
+        generateQRCode(currentUrl); // 生成二维码
+        document.getElementById('qrCodeModal').style.display = 'block'; // 显示浮窗
+    }
+});
+
+// 复制链接的函数
+function copyLink() {
+    const copyText = document.getElementById("shareUrl");
+
+    // 选择文本框内容
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); // 对于手机设备
+
+    // 执行复制命令
+    document.execCommand("copy");
+
+    // 提示用户
+    alert("链接已复制: " + copyText.value);
+}
+
+// 关闭浮窗
+document.getElementById('closeBtn').addEventListener('click', function() {
+    document.getElementById('qrCodeModal').style.display = 'none';  // 隐藏浮窗
+});
+
+// 使用 QRCode.js 生成二维码
+function generateQRCode(url) {
+    const qrCodeContainer = document.getElementById('qrCodeContainer');
+    qrCodeContainer.innerHTML = "";  // 清空之前的二维码
+
+    QRCode.toCanvas(qrCodeContainer, url, {
+        width: 128,
+        color: {
+            dark: "#000000",  // 设置二维码的前景色
+            light: "#ffffff"  // 设置二维码的背景色
+        },
+        errorCorrectionLevel: 'H'  // 设置错误纠正级别
+    }, function (error) {
+        if (error) {
+            console.error(error);
+            alert("生成二维码失败！");
+        }
+    });
+}
+
+</script>

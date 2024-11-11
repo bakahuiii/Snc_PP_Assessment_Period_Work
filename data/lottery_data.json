@@ -1,0 +1,26 @@
+{
+    "1": {
+        "prizeName": "1",
+        "numParticipants": "1",
+        "prizes": [
+            {
+                "prize": "1",
+                "count": "1"
+            }
+        ],
+        "ct": "1",
+        "participants": []
+    },
+    "2": {
+        "prizeName": "1",
+        "numParticipants": "1",
+        "prizes": [
+            {
+                "prize": "1",
+                "count": "1"
+            }
+        ],
+        "ct": "2",
+        "participants": []
+    }
+}

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建抽奖项目</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        input, button {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .input-group {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .input-group input {
+            width: 48%;
+            margin-right: 4%;
+        }
+        .input-group input:last-child {
+            margin-right: 0;
+        }
+        .input-group button {
+            width: auto;
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>创建抽奖项目</h1>
+        <div>
+            <input type="text" id="prizeName" placeholder="抽奖项目名称" required>
+            <input type="number" id="numParticipants" placeholder="参与人数" required>
+        </div>
+        <div id="inputs-container">
+            <div class="input-group">
+                <input type="text" placeholder="奖品" class="prize" required>
+                <input type="number" placeholder="数量" class="count" required>
+            </div>
+        </div>
+        <button id="addPrizeButton">添加奖品</button>
+        <button id="savePrizeButton">保存项目</button>
+        <div id="responseMessage"></div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // 点击“添加奖品”按钮时，动态添加新的输入框
+        document.getElementById('addPrizeButton').addEventListener('click', function() {
+            const container = document.getElementById('inputs-container');
+            const newPrizeGroup = document.createElement('div');
+            newPrizeGroup.classList.add('input-group');
+            
+            const prizeInput = document.createElement('input');
+            prizeInput.type = 'text';
+            prizeInput.placeholder = '奖品';
+            prizeInput.classList.add('prize');
+            
+            const countInput = document.createElement('input');
+            countInput.type = 'number';
+            countInput.placeholder = '数量';
+            countInput.classList.add('count');
+            
+            newPrizeGroup.appendChild(prizeInput);
+            newPrizeGroup.appendChild(countInput);
+            
+            container.appendChild(newPrizeGroup);
+        });
+
+        document.getElementById('savePrizeButton').addEventListener('click', function() {
+    const prizeName = document.getElementById('prizeName').value;
+    const numParticipants = document.getElementById('numParticipants').value;
+    const prizeData = [];
+    const prizeInputs = document.querySelectorAll('.input-group');
+
+    prizeInputs.forEach(group => {
+        const prize = group.querySelector('.prize').value;
+        const count = group.querySelector('.count').value;
+        prizeData.push({ prize, count });
+    });
+
+    // 检查用户是否填写了所有必填项
+    if (!prizeName || !numParticipants || prizeData.length === 0) {
+        document.getElementById('responseMessage').innerText = '请填写所有必填项！';
+        return;
+    }
+
+    // 发送数据到服务器
+    $.ajax({
+        url: "http://127.0.0.1:5000/save-prize",  // 后端保存抽奖项目的API
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            prizeName: prizeName,
+            numParticipants: numParticipants,
+            prizes: prizeData
+        }),
+        success: function(response) {
+            document.getElementById('responseMessage').innerText = "抽奖项目保存成功!";
+            
+            // 成功后跳转到新创建的抽奖页面
+            const lotteryId = response.ct;  // 从响应中获取新创建的抽奖 ID
+            window.location.href = `http://127.0.0.1:5000/lottery.html?id=${lotteryId}`;  // Flask 渲染的路径
+            
+            // 清空输入框
+            document.getElementById('prizeName').value = '';
+            document.getElementById('numParticipants').value = '';
+            document.getElementById('inputs-container').innerHTML = '';
+            addPrizeInput(); // 初始化一个奖品输入框
+        },
+        error: function(xhr, status, error) {
+            document.getElementById('responseMessage').innerText = "保存失败，请重试！";
+            console.log("Error:", error);
+        }
+    });
+});
+
+
+
+        // 初始化一个奖品输入框
+        function addPrizeInput() {
+            const container = document.getElementById('inputs-container');
+            const newPrizeGroup = document.createElement('div');
+            newPrizeGroup.classList.add('input-group');
+            
+            const prizeInput = document.createElement('input');
+            prizeInput.type = 'text';
+            prizeInput.placeholder = '奖品';
+            prizeInput.classList.add('prize');
+            
+            const countInput = document.createElement('input');
+            countInput.type = 'number';
+            countInput.placeholder = '数量';
+            countInput.classList.add('count');
+            
+            newPrizeGroup.appendChild(prizeInput);
+            newPrizeGroup.appendChild(countInput);
+            
+            container.appendChild(newPrizeGroup);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+[
+  {
+    "id": "1",
+    "totalPeople": 1,
+    "prizes": [
+      {
+        "name": "1",
+        "probability": 1
+      }
+    ]
+  },
+  {
+    "id": "2",
+    "totalPeople": 1,
+    "prizes": [
+      {
+        "name": "1",
+        "probability": 1
+      }
+    ]
+  },
+  {
+    "id": "3",
+    "totalPeople": 10,
+    "prizes": [
+      {
+        "name": "1",
+        "quantity": 2
+      },
+      {
+        "name": "2",
+        "quantity": 4
+      },
+      {
+        "name": "3",
+        "quantity": 4
+      }
+    ]
+  },
+  {
+    "id": "4",
+    "totalPeople": 1,
+    "prizes": [
+      {
+        "name": "1",
+        "quantity": 1
+      }
+    ]
+  },
+  {
+    "id": "5",
+    "totalPeople": 1,
+    "prizes": [
+      {
+        "name": "1",
+        "quantity": 1
+      }
+    ]
+  }
+]

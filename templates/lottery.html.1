@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>参与抽奖</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>  <!-- 引入 jQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+
+</head>
+<body>
+    <h1>参与抽奖</h1>
+    <p>抽奖项目：<span id="lottery-name"></span></p>
+
+    <h3>参与抽奖</h3>
+    <input type="text" id="nickname" placeholder="输入昵称">
+    <button onclick="joinLottery()">参与抽奖</button>
+    <button id="downloadButton">下载抽奖结果</button>
+
+    <div id="result"></div>  <!-- 用于显示抽奖结果 -->
+
+    <script>
+        // 定义 joinLottery 函数
+        function joinLottery() {
+        const nickname = document.getElementById('nickname').value;
+        const lotteryId = new URLSearchParams(window.location.search).get('id');
+
+        if (!nickname) {
+            alert("请输入昵称！");
+            return;
+         }
+
+    // 发送参与抽奖请求
+    $.ajax({
+        url: `http://127.0.0.1:5000/join-lottery/${lotteryId}`,  // 请求加入抽奖的 API
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ nickname: nickname }),
+        success: function(response) {
+            // 显示抽奖结果
+            alert(response.message);  // 展示抽中的奖品
+        },
+        error: function(xhr, status, error) {
+            // 错误处理
+            alert(xhr.responseJSON.error || "参与抽奖失败，请重试！");
+        }
+    });
+}
+
+        // 页面加载时获取抽奖项目信息并展示
+        $(document).ready(function() {
+            const lotteryId = new URLSearchParams(window.location.search).get('id');
+            if (lotteryId) {
+                $.ajax({
+                    url: `http://127.0.0.1:5000/get-lottery/${lotteryId}`,
+                    method: "GET",
+                    success: function(response) {
+                        const { prizeName, participants } = response;
+                        document.getElementById('lottery-name').textContent = prizeName;
+                    },
+                    error: function(xhr, status, error) {
+                        alert("加载抽奖信息失败！");
+                    }
+                });
+            }
+        });
+
+
+// 获取抽奖结果并下载为 Excel
+document.getElementById('downloadButton').addEventListener('click', function () {
+    const lotteryId = new URLSearchParams(window.location.search).get('id');
+    
+    if (!lotteryId) {
+        alert("抽奖ID无效！");
+        return;
+    }
+
+    // 发送请求获取当前抽奖的详细信息
+    $.ajax({
+        url: `http://localhost:5000/get-lottery/${lotteryId}`,
+        method: "GET",
+        success: function (response) {
+            // 解析返回的数据
+            const lottery = response;
+
+            // 构建表格数据
+            const participants = lottery.participants;
+            const prizes = lottery.prizes;
+
+            // 创建表格数据
+            const tableData = [];
+
+            // 设置表头
+            tableData.push(['序号', '昵称', '奖品']);
+
+            // 填充参与者数据
+            participants.forEach((participant, index) => {
+                const prize = participant.prize;
+                // 你可以选择将奖品数量保持为常量或直接读取奖品数量
+                // const prizeCount = prizeDetails ? prizeDetails.count : 0;
+                tableData.push([index + 1, participant.nickname, prize]);
+            });
+
+            // 使用 SheetJS 创建 Excel 文件
+            const ws = XLSX.utils.aoa_to_sheet(tableData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "抽奖结果");
+
+            // 下载 Excel 文件
+            XLSX.writeFile(wb, `lottery_result_${lotteryId}.xlsx`);
+        },
+        error: function (xhr, status, error) {
+            alert("获取抽奖数据失败！");
+        }
+    });
+});
+
+
+
+    </script>
+</body>
+</html>
