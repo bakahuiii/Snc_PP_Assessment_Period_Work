@@ -74,6 +74,8 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+        var j = 0;
+
         // 点击“添加奖品”按钮时，动态添加新的输入框
         document.getElementById('addPrizeButton').addEventListener('click', function() {
             const container = document.getElementById('inputs-container');
@@ -89,12 +91,30 @@
             countInput.type = 'number';
             countInput.placeholder = '数量';
             countInput.classList.add('count');
+
+            // 当奖品数量输入框变化时，更新总数量 j
+            countInput.addEventListener('input', function() {
+                updateTotalPrizeCount();
+            });
             
             newPrizeGroup.appendChild(prizeInput);
             newPrizeGroup.appendChild(countInput);
             
             container.appendChild(newPrizeGroup);
+
+            // 更新总奖品数量
+            updateTotalPrizeCount();
         });
+
+        // 更新总奖品数量
+        function updateTotalPrizeCount() {
+            j = 0; // 重置总数量
+            const countInputs = document.querySelectorAll('.count');
+            countInputs.forEach(input => {
+                const count = parseInt(input.value) || 0;  // 如果为空则认为是 0
+                j += count;
+            });
+        }
 
         document.getElementById('savePrizeButton').addEventListener('click', function() {
     const prizeName = document.getElementById('prizeName').value;
@@ -113,6 +133,25 @@
         document.getElementById('responseMessage').innerText = '请填写所有必填项！';
         return;
     }
+
+    // 确保 numParticipants 是一个有效的整数
+    const numParticipantsInt = parseInt(numParticipants);
+    if (isNaN(numParticipantsInt)) {
+        document.getElementById('responseMessage').innerText = '参与人数必须是一个有效的整数！';
+        return;
+    }
+
+    // 更新总奖品数量 j
+    updateTotalPrizeCount();
+
+    // 检查奖品数量总和与参与人数是否一致
+    if (j !== numParticipantsInt) {
+        // 弹出提示框并在用户点击确定后刷新页面
+        alert('请保证奖品数量总和等于总人数（如果有无奖请自行添加无奖）');
+        location.reload(); // 刷新页面
+        return;
+    }
+
 
     // 发送数据到服务器
     $.ajax({
