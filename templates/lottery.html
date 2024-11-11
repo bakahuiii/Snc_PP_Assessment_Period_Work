@@ -108,6 +108,11 @@
             return;
          }
 
+    // 获取提交按钮并禁用它
+    const submitButton = document.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    submitButton.style.cursor = 'not-allowed';  // 修改光标样式，表示按钮被禁用
+
     // 发送参与抽奖请求
     $.ajax({
         url: `http://127.0.0.1:5000/join-lottery/${lotteryId}`,  // 请求加入抽奖的 API
