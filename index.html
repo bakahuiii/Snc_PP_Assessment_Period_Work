@@ -74,7 +74,7 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        var j = 0;
+        var j = 0;  //计算奖品的总和 防止因为奖品数与人数偏差导致用户“中奖了但是没中奖”     --1.2
 
         // 点击“添加奖品”按钮时，动态添加新的输入框
         document.getElementById('addPrizeButton').addEventListener('click', function() {
@@ -92,21 +92,21 @@
             countInput.placeholder = '数量';
             countInput.classList.add('count');
 
-            // 当奖品数量输入框变化时，更新总数量 j
+            // 当奖品数量输入框变化时，更新总数量 j     --1.2
             countInput.addEventListener('input', function() {
                 updateTotalPrizeCount();
             });
-            
+            //
             newPrizeGroup.appendChild(prizeInput);
             newPrizeGroup.appendChild(countInput);
             
             container.appendChild(newPrizeGroup);
 
-            // 更新总奖品数量
+            // 更新总奖品数量       --1.2
             updateTotalPrizeCount();
         });
 
-        // 更新总奖品数量
+        // 更新总奖品数量       --1.2
         function updateTotalPrizeCount() {
             j = 0; // 重置总数量
             const countInputs = document.querySelectorAll('.count');
@@ -134,17 +134,17 @@
         return;
     }
 
-    // 确保 numParticipants 是一个有效的整数
+    // 确保 numParticipants 是一个有效的整数           --1.2
     const numParticipantsInt = parseInt(numParticipants);
     if (isNaN(numParticipantsInt)) {
         document.getElementById('responseMessage').innerText = '参与人数必须是一个有效的整数！';
         return;
     }
 
-    // 更新总奖品数量 j
+    // 更新总奖品数量 j     --1.2
     updateTotalPrizeCount();
 
-    // 检查奖品数量总和与参与人数是否一致
+    // 检查奖品数量总和与参与人数是否一致       --1.2
     if (j !== numParticipantsInt) {
         // 弹出提示框并在用户点击确定后刷新页面
         alert('请保证奖品数量总和等于总人数（如果有无奖请自行添加无奖）');
