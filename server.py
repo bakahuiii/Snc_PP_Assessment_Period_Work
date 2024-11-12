@@ -3,6 +3,7 @@ from flask_cors import CORS
 import json
 import os
 import random
+from datetime import datetime   #记录时间
 
 app = Flask(__name__)
 
@@ -43,6 +44,14 @@ def save_prize():
     data['ct'] = ct
     data['participants'] = []
 
+    # 记录当前时间（创建时间） --1.3
+    creation_time = datetime.utcnow().isoformat()  # UTC 时间
+    data['creation_time'] = creation_time
+
+    # 记录用户信息（IP 地址）--1.3
+    user_ip = request.remote_addr  # 获取请求的 IP 地址
+    data['created_by'] = user_ip
+
     lottery_data[ct] = data
 
     save_lottery_data(lottery_data)
@@ -50,6 +59,7 @@ def save_prize():
 
 @app.route('/get-lottery/<lottery_id>', methods=['GET'])
 def get_lottery(lottery_id):
+    
     lottery_data = get_lottery_data()
     lottery = lottery_data.get(lottery_id)
 
@@ -77,6 +87,13 @@ def join_lottery(lottery_id):
 
     if not nickname:
         return jsonify({'error': '昵称不能为空'}), 400
+    
+    # 获取当前时间  --1.3
+    submission_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # 获取客户端的 IP 地址和 User-Agent 信息    --1.3
+    client_ip = request.remote_addr
+    user_agent = request.headers.get('User-Agent')
 
     # 计算剩余奖品的总数量
     remaining_prizes = []
@@ -100,7 +117,7 @@ def join_lottery(lottery_id):
             break
 
     # 更新抽奖数据
-    lottery['participants'].append({'nickname': nickname, 'prize': chosen_prize['prize']})
+    lottery['participants'].append({'nickname': nickname, 'prize': chosen_prize['prize'],'submission_time': submission_time,'client_ip': client_ip,'user_agent': user_agent })
 
     # 保存更新后的抽奖数据
     save_lottery_data(lottery_data)
