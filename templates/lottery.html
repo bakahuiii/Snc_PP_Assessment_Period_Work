@@ -108,7 +108,7 @@
             return;
          }
 
-    // 获取提交按钮并禁用它
+    // 获取提交按钮并禁用它 --1.2
     const submitButton = document.querySelector('button[type="submit"]');
     submitButton.disabled = true;
     submitButton.style.cursor = 'not-allowed';  // 修改光标样式，表示按钮被禁用
@@ -178,24 +178,49 @@ document.getElementById('downloadButton').addEventListener('click', function () 
             const participants = lottery.participants;
             const prizes = lottery.prizes;
 
+            const creationTime = lottery.creation_time;  // 获取创建时间
+            const createdBy = lottery.created_by;  // 获取创建者
+
             // 创建表格数据
             const tableData = [];
 
             // 设置表头
-            tableData.push(['序号', '昵称', '奖品']);
+            tableData.push(['序号', '昵称', '奖品', '提交时间', 'IP 地址', 'User-Agent']);
 
             // 填充参与者数据
             participants.forEach((participant, index) => {
                 const prize = participant.prize;
                 // 你可以选择将奖品数量保持为常量或直接读取奖品数量
                 // const prizeCount = prizeDetails ? prizeDetails.count : 0;
-                tableData.push([index + 1, participant.nickname, prize]);
+                const submissionTime = participant.submission_time;  // 获取提交时间    --1.3
+                const clientIp = participant.client_ip;  // 获取 IP 地址    --1.3
+                const userAgent = participant.user_agent;  // 获取 User-Agent   --1.3
+                tableData.push([index + 1, participant.nickname, prize, submissionTime,clientIp, userAgent]);
             });
+
+            // 在表格的最后一行添加创建时间和创建者信息
+            tableData.push(['', '', '', '', '', '']);
+            tableData.push(['', '', '', '创建时间:', creationTime, '']);
+            tableData.push(['', '', '', '创建者:', createdBy, '']);
 
             // 使用 SheetJS 创建 Excel 文件
             const ws = XLSX.utils.aoa_to_sheet(tableData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "抽奖结果");
+
+            // 自动调整列宽     --1.3
+            const colWidths = [];
+            // 遍历每一列，计算最大宽度（是的。遍历。）
+            tableData.forEach(row => {
+                row.forEach((cell, colIndex) => {
+                    const cellValue = String(cell);
+                    // 计算列宽
+                    const currentWidth = colWidths[colIndex] || 0;
+                    colWidths[colIndex] = Math.max(currentWidth, cellValue.length);
+                });
+            });
+            // 设置列宽
+            ws['!cols'] = colWidths.map(width => ({ wch: width + 2 }));
 
             // 下载 Excel 文件
             XLSX.writeFile(wb, `lottery_result_${lotteryId}.xlsx`);
