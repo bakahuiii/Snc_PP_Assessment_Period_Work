@@ -39,13 +39,16 @@
                                     <button onclick="joinLottery()" type="submit" class="button_2" style="cursor: pointer">提交</button>
                                     <h2 class="hh2">当前参与人数: <span id="maxNum" class="mmaxnum">加载中...</span></h2>
                                     <div id="result"></div>  <!-- 用于显示抽奖结果 -->
-                                    <li class="navigation__item">
-                                        <!-- 按钮，点击后生成 Excel 表格并下载 -->
-                                        <button id="downloadButton" class="button_1">下载 Excel 表格</button>
-                                    </li>
+                                    <!-- 按钮，点击后生成 Excel 表格并下载 -->
+                                    <button id="downloadButton" class="button_1">下载 Excel 表格</button>
                                     <!-- 分享按钮 -->
                                     <button id="shareButton" class="button_1">分享此链接</button>
 
+                                    <!-- 在表单中添加文件上传功能 -->
+                                    <li class="navigation__item">
+                                        <button type="button" id="startBatchDraw" class="button_1">一键抽奖</button>
+                                        <button type="button" id="createLottery" class="button_1">创建抽奖</button>
+                                    </li>
                                     <!-- 手动复制链接和二维码的浮窗 -->
                                     <div id="qrCodeModal" class="modal">
                                         <div class="modal-content">
@@ -59,6 +62,7 @@
                                             <div id="qrCodeContainer">
                                             <!-- 二维码将会显示在这里 -->
                                             </div>
+
                                         </div>
                                     </div>
                                 </form>
@@ -293,5 +297,166 @@ function generateQRCode(url) {
         }
     });
 }
+
+
+// 一键抽奖的功能（传入选中的文件）     --1.4
+function startBatchDraw(file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        // 假设数据存储在第一个工作表
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+        // 获取表头范围
+        const range = XLSX.utils.decode_range(sheet['!ref']); // 获取表格的范围
+        const firstRow = sheet[XLSX.utils.encode_cell({ r: 0, c: 0 })]; // 第一行的第一列内容（表头的开始）
+
+        // 可能的昵称列名称
+        const possibleColumns = ["昵称", "ID", "name", "用户名"];
+        let nicknameColIndex = -1;
+
+        // 通过遍历第一行，找到包含上述任一列名称的列索引
+        for (let col = range.s.c; col <= range.e.c; col++) {
+            const cell = sheet[XLSX.utils.encode_cell({ r: 0, c: col })]; // 获取每一列的表头单元格
+            if (cell && cell.v) {
+                const cellValue = cell.v.trim().toLowerCase();
+                // 遍历所有可能的昵称列名，如果匹配则认为是“昵称”列
+                for (let possibleCol of possibleColumns) {
+                    if (cellValue.includes(possibleCol.toLowerCase())) {
+                        nicknameColIndex = col;
+                        break;  // 找到匹配的列后跳出
+                    }
+                }
+            }
+            if (nicknameColIndex !== -1) {
+                break;  // 找到昵称列后跳出循环
+            }
+        }
+
+        // 如果没有找到昵称列
+        if (nicknameColIndex === -1) {
+            alert("没有找到昵称列，请检查 Excel 文件！");
+            return;
+        }
+
+        // 获取“昵称”列的数据
+        const nicknames = [];
+        for (let row = 1; row <= range.e.r; row++) {  // 从第二行开始，第一行是表头
+            const nicknameCell = sheet[XLSX.utils.encode_cell({ r: row, c: nicknameColIndex })];  // 获取对应列的昵称
+            if (nicknameCell && nicknameCell.v) {
+                const nickname = nicknameCell.v.trim();
+                nicknames.push(nickname);  // 存储有效的昵称
+            }
+        }
+
+        // 如果有有效的昵称，开始批量抽奖
+        if (nicknames.length > 0) {
+            batchDraw(nicknames);
+        } else {
+            alert("没有有效的昵称！请检查 Excel 文件。");
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// 批量抽奖                 --1.4
+function batchDraw(nicknames) {
+    const lotteryId = new URLSearchParams(window.location.search).get('id');
+
+    // 禁用按钮，避免重复点击
+    const button = document.getElementById('startBatchDraw');
+    button.disabled = true;
+
+
+    // 执行逐个抽奖
+    nicknames.forEach((nickname, index) => {
+        setTimeout(function() {
+            $.ajax({
+                url: `http://127.0.0.1:5000/join-lottery/${lotteryId}`,  // 后端 API
+                method: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ nickname: nickname }),
+                success: function(response) {
+                    console.log(response.message);  // 输出每个抽奖的结果
+
+                    // 更新当前参与人数
+                    updateParticipantCount(lotteryId);
+
+                    // 如果所有抽奖都完成，启用按钮并显示弹窗提示
+                    if (index === nicknames.length - 1) {
+                        // 启用按钮
+                        button.disabled = false;
+
+                        // 使用系统自带的弹窗提示
+                        alert("一键抽奖已完成！");
+
+                        // 页面刷新
+                        location.reload();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.log("抽奖失败：" + error);
+                }
+            })
+        },index * 100);  // 每个抽奖请求之间延迟 0.1 秒，防止请求过快
+    });
+}
+
+
+
+// 更新参与人数(按理说可以和上面代码合并 但是等以后再说吧)             --1.4
+function updateParticipantCount(lotteryId) {
+    $.ajax({
+        url: `http://127.0.0.1:5000/get-lottery/${lotteryId}`,  // 请求获取当前抽奖的参与人数
+        method: "GET",
+        success: function(response) {
+            const { participants, numParticipants } = response;
+
+            // 更新当前参与人数显示
+            const participantCount = participants.length;
+            document.getElementById('maxNum').textContent = `${participantCount}/${numParticipants}`;
+        },
+        error: function(xhr, status, error) {
+            console.log("更新参与人数失败：" + error);
+        }
+    });
+}
+
+
+// 点击“一键抽奖”按钮获取文件           --1.4  
+const startBatchDrawButton = document.getElementById('startBatchDraw');
+const excelFileInput = document.createElement('input'); // 动态创建文件输入框
+excelFileInput.type = 'file';
+excelFileInput.accept = '.xlsx, .xls'; // 只接受 Excel 文件
+
+// 点击"一键抽奖"时触发文件选择框       --1.4
+startBatchDrawButton.addEventListener('click', function() {
+    excelFileInput.click(); // 自动触发文件选择对话框
+});
+
+// 当文件选择变化时，弹出确认框           --1.4
+excelFileInput.addEventListener('change', function() {
+    const file = excelFileInput.files[0]; // 获取选中的文件
+    if (file) {
+        // 使用浏览器自带的确认弹窗来确认是否开始抽奖
+        const confirmStart = confirm(`您选择的文件是：${file.name}\n\n是否开始抽奖？`);
+        
+        if (confirmStart) {
+            // 如果用户点击“确定”，开始执行一键抽奖
+            startBatchDraw(file); 
+        }
+    }
+});
+
+// 获取“创建抽奖”按钮                       --1.4
+const createLotteryButton = document.getElementById('createLottery');
+
+// 为"创建抽奖"按钮添加点击事件             --1.4
+createLotteryButton.addEventListener('click', function() {
+    // 跳转到 创建抽奖界面 页面
+    window.location.href = 'http://127.0.0.1:8000';
+});
 
 </script>
